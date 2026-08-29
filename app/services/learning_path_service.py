@@ -10,7 +10,9 @@ from app.schemas.learning_path import (
     LearningPathItemOut,
     LearningPathItemUpdate,
     LearningPathOut,
+    LearningPathUpdate,
 )
+
 from app.services.ai.ollama import get_ai_provider
 
 
@@ -72,6 +74,26 @@ class LearningPathService:
         )
         await self.db.commit()
         return await self.get_path(path.id, user_id)
+
+    async def update_path(
+        self,
+        path_id: str,
+        user_id: str,
+        payload: "LearningPathUpdate",
+    ) -> LearningPathOut:
+        path = await self.path_repo.get_by_id(path_id, user_id)
+        if not path:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Learning path not found")
+
+        await self.path_repo.update(
+            path=path,
+            title=payload.title,
+            description=payload.description,
+            steps=payload.steps,
+        )
+        await self.db.commit()
+        return await self.get_path(path.id, user_id)
+
 
 
     async def update_item_status(

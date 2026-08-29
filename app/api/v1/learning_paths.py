@@ -11,7 +11,9 @@ from app.schemas.learning_path import (
     LearningPathCreate,
     LearningPathItemUpdate,
     LearningPathOut,
+    LearningPathUpdate,
 )
+
 from app.services.auth_service import get_current_user
 from app.services.learning_path_service import LearningPathService
 
@@ -63,6 +65,19 @@ async def get_path(
     service = LearningPathService(db)
     path = await service.get_path(path_id=path_id, user_id=current_user.id)
     return ApiResponse(data=path)
+
+
+@router.put("/{path_id}", response_model=ApiResponse[LearningPathOut])
+async def update_path(
+    path_id: str,
+    payload: LearningPathUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    service = LearningPathService(db)
+    path = await service.update_path(path_id=path_id, user_id=current_user.id, payload=payload)
+    return ApiResponse(data=path)
+
 
 
 @router.put("/{path_id}/items/{item_id}", response_model=ApiResponse[LearningPathOut])

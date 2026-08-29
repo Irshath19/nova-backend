@@ -10,6 +10,8 @@ class LearningPathStepInput(BaseModel):
     title: str = Field(..., min_length=1, max_length=255)
     description: str | None = None
     concept_id: str | None = None
+    status: PathItemStatus | None = PathItemStatus.NOT_STARTED
+
 
 
 class LearningPathItemCreate(BaseModel):
@@ -53,7 +55,9 @@ class LearningPathCreate(LearningPathBase):
 class LearningPathUpdate(BaseModel):
     title: str | None = Field(None, min_length=1, max_length=255)
     description: str | None = None
+    steps: list[LearningPathStepInput] | None = None
     items: list[LearningPathItemCreate] | None = None
+
 
 
 class LearningPathOut(LearningPathBase):

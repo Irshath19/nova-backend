@@ -43,6 +43,25 @@ async def test_learning_paths_and_progress(client: AsyncClient, auth_headers: di
     assert update_item_res.status_code == 200
     assert update_item_res.json()["data"]["completed_items"] == 1
 
+    # 4. Edit learning path
+    edit_path_res = await client.put(
+        f"/api/v1/learning-paths/{path_id}",
+        json={
+            "title": "AI & ML Engineering",
+            "description": "Updated roadmap",
+            "steps": [
+                {"title": "Python Core", "description": "Core python fundamentals", "status": "COMPLETED"},
+                {"title": "PyTorch", "description": "Deep learning models", "status": "NOT_STARTED"},
+                {"title": "LLMs & Transformers", "description": "Attention mechanics", "status": "NOT_STARTED"},
+            ],
+        },
+        headers=auth_headers,
+    )
+    assert edit_path_res.status_code == 200
+    assert edit_path_res.json()["data"]["title"] == "AI & ML Engineering"
+    assert len(edit_path_res.json()["data"]["items"]) == 3
+
+
     # 4. Generate learning path with AI
     gen_res = await client.post(
         "/api/v1/learning-paths/generate",
@@ -62,5 +81,6 @@ async def test_learning_paths_and_progress(client: AsyncClient, auth_headers: di
     assert metrics["total_learning_paths"] >= 1
     assert len(metrics["concepts_by_level"]) == 5
     assert len(metrics["learning_paths_progress"]) >= 1
-    assert metrics["learning_paths_progress"][0]["progress_percentage"] == 50.0
+    assert metrics["learning_paths_progress"][0]["progress_percentage"] == round(1 / 3 * 100, 1)
+
 

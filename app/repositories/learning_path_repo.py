@@ -93,13 +93,38 @@ class LearningPathRepository:
         path: LearningPath,
         title: str | None = None,
         description: str | None = None,
+        steps: list[LearningPathStepInput | dict] | None = None,
     ) -> LearningPath:
         if title is not None:
-            path.title = title
+            path.title = title.strip()
         if description is not None:
-            path.description = description
-        await self.db.flush()
+            path.description = description.strip() if description else None
+
+        if steps is not None:
+            # Recreate steps with new ordering and details
+            path.items.clear()
+            await self.db.flush()
+
+            for idx, s in enumerate(steps):
+                s_title = s.title if hasattr(s, "title") else s.get("title", f"Step {idx + 1}")
+                s_desc = s.description if hasattr(s, "description") else s.get("description", None)
+                s_cid = s.concept_id if hasattr(s, "concept_id") else s.get("concept_id", None)
+                s_status = s.status if hasattr(s, "status") and s.status else PathItemStatus.NOT_STARTED
+
+                item = LearningPathItem(
+                    learning_path_id=path.id,
+                    title=s_title.strip() if s_title else f"Step {idx + 1}",
+                    description=s_desc.strip() if s_desc else None,
+                    concept_id=s_cid,
+                    position=idx,
+                    status=s_status,
+                )
+                self.db.add(item)
+            await self.db.flush()
+
+        await self.db.refresh(path)
         return path
+
 
     async def update_item(
         self,
