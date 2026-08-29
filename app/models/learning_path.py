@@ -44,7 +44,9 @@ class LearningPathItem(Base):
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     learning_path_id = Column(String(36), ForeignKey("learning_paths.id", ondelete="CASCADE"), nullable=False, index=True)
-    concept_id = Column(String(36), ForeignKey("concepts.id", ondelete="CASCADE"), nullable=False, index=True)
+    title = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    concept_id = Column(String(36), ForeignKey("concepts.id", ondelete="SET NULL"), nullable=True, index=True)
     position = Column(Integer, nullable=False, default=0)
     status = Column(
         Enum(PathItemStatus, name="path_item_status_enum"),
@@ -55,3 +57,4 @@ class LearningPathItem(Base):
     # Relationships
     learning_path = relationship("LearningPath", back_populates="items")
     concept = relationship("Concept", back_populates="learning_path_items")
+

@@ -67,10 +67,12 @@ class LearningPathService:
             user_id=user_id,
             title=payload.title,
             description=payload.description,
+            steps=payload.steps,
             concept_ids=payload.concept_ids,
         )
         await self.db.commit()
         return await self.get_path(path.id, user_id)
+
 
     async def update_item_status(
         self,

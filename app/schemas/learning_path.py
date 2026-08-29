@@ -6,8 +6,16 @@ from app.models.learning_path import PathItemStatus
 from app.schemas.concept import ConceptOut
 
 
+class LearningPathStepInput(BaseModel):
+    title: str = Field(..., min_length=1, max_length=255)
+    description: str | None = None
+    concept_id: str | None = None
+
+
 class LearningPathItemCreate(BaseModel):
-    concept_id: str
+    title: str = Field(..., min_length=1, max_length=255)
+    description: str | None = None
+    concept_id: str | None = None
     position: int = 0
     status: PathItemStatus = PathItemStatus.NOT_STARTED
 
@@ -15,6 +23,8 @@ class LearningPathItemCreate(BaseModel):
 class LearningPathItemUpdate(BaseModel):
     status: PathItemStatus | None = None
     position: int | None = None
+    title: str | None = None
+    description: str | None = None
 
 
 class LearningPathItemOut(BaseModel):
@@ -22,7 +32,9 @@ class LearningPathItemOut(BaseModel):
 
     id: str
     learning_path_id: str
-    concept_id: str
+    title: str
+    description: str | None = None
+    concept_id: str | None = None
     position: int
     status: PathItemStatus
     concept: ConceptOut | None = None
@@ -34,6 +46,7 @@ class LearningPathBase(BaseModel):
 
 
 class LearningPathCreate(LearningPathBase):
+    steps: list[LearningPathStepInput] | None = []
     concept_ids: list[str] | None = []
 
 

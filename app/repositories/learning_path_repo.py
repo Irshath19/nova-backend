@@ -1,9 +1,10 @@
-
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.models.concept import Concept
 from app.models.learning_path import LearningPath, LearningPathItem, PathItemStatus
+from app.schemas.learning_path import LearningPathStepInput
 
 
 class LearningPathRepository:
@@ -38,20 +39,45 @@ class LearningPathRepository:
         user_id: str,
         title: str,
         description: str | None = None,
+        steps: list[LearningPathStepInput | dict] | None = None,
         concept_ids: list[str] | None = None,
     ) -> LearningPath:
         path = LearningPath(
             user_id=user_id,
-            title=title,
-            description=description,
+            title=title.strip(),
+            description=description.strip() if description else None,
         )
         self.db.add(path)
         await self.db.flush()
 
-        if concept_ids:
-            for idx, cid in enumerate(concept_ids):
+        if steps:
+            for idx, s in enumerate(steps):
+                s_title = s.title if hasattr(s, "title") else s.get("title", f"Step {idx + 1}")
+                s_desc = s.description if hasattr(s, "description") else s.get("description", None)
+                s_cid = s.concept_id if hasattr(s, "concept_id") else s.get("concept_id", None)
+
                 item = LearningPathItem(
                     learning_path_id=path.id,
+                    title=s_title.strip() if s_title else f"Step {idx + 1}",
+                    description=s_desc.strip() if s_desc else None,
+                    concept_id=s_cid,
+                    position=idx,
+                    status=PathItemStatus.NOT_STARTED,
+                )
+                self.db.add(item)
+            await self.db.flush()
+
+        elif concept_ids:
+            for idx, cid in enumerate(concept_ids):
+                # Fetch concept to populate default title
+                c_stmt = select(Concept).where(Concept.id == cid)
+                c_res = await self.db.execute(c_stmt)
+                concept = c_res.scalar_one_or_none()
+
+                item = LearningPathItem(
+                    learning_path_id=path.id,
+                    title=concept.name if concept else f"Step {idx + 1}",
+                    description=concept.description if concept else None,
                     concept_id=cid,
                     position=idx,
                     status=PathItemStatus.NOT_STARTED,
@@ -81,6 +107,8 @@ class LearningPathRepository:
         path_id: str,
         status: PathItemStatus | None = None,
         position: int | None = None,
+        title: str | None = None,
+        description: str | None = None,
     ) -> LearningPathItem | None:
         stmt = select(LearningPathItem).where(
             LearningPathItem.id == item_id,
@@ -93,6 +121,10 @@ class LearningPathRepository:
                 item.status = status
             if position is not None:
                 item.position = position
+            if title is not None:
+                item.title = title
+            if description is not None:
+                item.description = description
             await self.db.flush()
         return item
 

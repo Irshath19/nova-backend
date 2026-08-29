@@ -42,25 +42,25 @@ async def run_note_processing_pipeline(note_id: str, user_id: str, db: AsyncSess
         await note_repo.update(note, processing_status=ProcessingStatus.PROCESSING)
         await db.commit()
 
-        # Step 1: Summary Generation
-        summary_res = await ai.summarize(note.content)
+        # Sanitize HTML tags to clean plain text for AI processing
+        import re
+        clean_content = re.sub(r"<[^>]+>", " ", note.content)
+        clean_content = re.sub(r"\s+", " ", clean_content).strip()
+        if not clean_content:
+            clean_content = note.title
+
+        # Step 1: Clean Summary Generation (plain text without HTML tags)
+        summary_res = await ai.summarize(clean_content)
         note_summary = summary_res.summary
+        if note_summary:
+            # Strip any residual HTML markup from summary
+            note_summary = re.sub(r"<[^>]+>", "", note_summary).strip()
 
-        # Step 2: Smart Tags
-        ai_tags = await ai.generate_tags(note.content)
-        tag_entities: list[Tag] = []
-        for t_name in ai_tags:
-            tag = await tag_repo.get_or_create(t_name, user_id)
-            if tag not in tag_entities:
-                tag_entities.append(tag)
-
-        # Merge with existing note tags
-        for existing_t in note.tags:
-            if existing_t not in tag_entities:
-                tag_entities.append(existing_t)
+        # Step 2: Tags - Strictly preserve ONLY the user-provided tags (no AI tag generation)
+        tag_entities: list[Tag] = list(note.tags)
 
         # Step 3: Concept Extraction & Deduplication
-        extracted_concepts = await ai.extract_concepts(note.content)
+        extracted_concepts = await ai.extract_concepts(clean_content)
         concept_entities: list[Concept] = []
         new_concept_names: list[str] = []
 
@@ -82,7 +82,7 @@ async def run_note_processing_pipeline(note_id: str, user_id: str, db: AsyncSess
                 concept_entities.append(existing_c)
 
         # Step 4: Generate Note Vector Embedding
-        note_embedding_text = f"{note.title}\n{note_summary}\n{note.content}"
+        note_embedding_text = f"{note.title}\n{note_summary}\n{clean_content}"
         note_vector = await embedding_svc.get_embedding(note_embedding_text)
 
         # Step 5: Knowledge Graph Relationship Discovery
@@ -124,8 +124,9 @@ async def run_note_processing_pipeline(note_id: str, user_id: str, db: AsyncSess
         )
         await db.commit()
         await db.refresh(note, ["tags", "concepts"])
-        logger.info(f"Note {note_id} successfully processed by AI pipeline.")
+        logger.info(f"Note {note_id} successfully processed by AI pipeline with user-only tags.")
         return note
+
 
     except Exception as e:
         logger.exception(f"Error in note processing pipeline for {note_id}: {e}")

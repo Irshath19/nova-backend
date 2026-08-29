@@ -261,11 +261,15 @@ async def seed_data():
         for concept, pos, status in path_steps:
             item = LearningPathItem(
                 learning_path_id=rag_path.id,
+                title=concept.name,
+                description=concept.description,
                 concept_id=concept.id,
                 position=pos,
                 status=status,
             )
             session.add(item)
+        await session.flush()
+        print(f"✅ Created Sample Learning Path with {len(path_steps)} steps")
 
         await session.commit()
         print("🎉 Database seeding completed successfully!")

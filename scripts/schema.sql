@@ -167,10 +167,13 @@ CREATE INDEX idx_lp_user ON learning_paths(user_id);
 CREATE TABLE learning_path_items (
     id VARCHAR(36) PRIMARY KEY,
     learning_path_id VARCHAR(36) NOT NULL REFERENCES learning_paths(id) ON DELETE CASCADE,
-    concept_id VARCHAR(36) NOT NULL REFERENCES concepts(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    concept_id VARCHAR(36) REFERENCES concepts(id) ON DELETE SET NULL,
     position INTEGER NOT NULL DEFAULT 0,
     status path_item_status_enum NOT NULL DEFAULT 'NOT_STARTED'
 );
 
 CREATE INDEX idx_lpi_path ON learning_path_items(learning_path_id);
 CREATE INDEX idx_lpi_concept ON learning_path_items(concept_id);
+
